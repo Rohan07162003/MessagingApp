@@ -3,9 +3,7 @@ const { Server } = require("socket.io");
 const helmet = require("helmet");
 const cors = require("cors");
 const authRouter = require("./routers/Authrouter.js");
-const session = require("express-session")
-const Redis = require("ioredis");
-const {RedisStore} = require("connect-redis");
+const { sessionMiddleware, wrap, corsConfig} = require("./routers/ServerRouter.js");
 
 require("dotenv").config();
 
@@ -14,41 +12,14 @@ const app = express();
 const server = require("http").createServer(app);
 
 const io = new Server(server, {
-    cors: {
-        origin: "http://localhost:3000",
-        credentials: true,
-    }
+    cors: corsConfig
 });
-
-const redisClient =require("./redis.js")
-let redisStore = new RedisStore({
-    client: redisClient,
-    prefix: "myapp:",
-  })
-
 
 app.use(helmet());
 app.use(express.json());
-app.use(session({
-    secret: process.env.COOKIE_SECRET,
-    credentials: true,
-    name: "sid",
-    store: redisStore,
-    resave: false,
-    saveUninitialized:false,
-    cookie:{
-        secure: process.env.ENVIRONMENT === "production"?"true":"auto",
-        httpOnly: true,
-        expires: 1000 * 60 * 60 * 24 * 7,
-        sameSite: process.env.ENVIRONMENT === "production"?"none":"lax",
+app.use(sessionMiddleware)
 
-    }
-}))
-
-app.use(cors({
-    origin: "http://localhost:3000",
-    credentials: true,
-}));
+app.use(cors(corsConfig));
 
 // Add a middleware to set the necessary headers
 app.use((req, res, next) => {
@@ -59,8 +30,10 @@ app.use((req, res, next) => {
 
 app.use("/auth", authRouter);
 
+io.use(wrap(sessionMiddleware))
 io.on("connect", (socket) => {
-    console.log('New client connected');
+    console.log(socket.id);
+    console.log(socket.request.session.user.username);
 });
 
 server.listen(4000, () => {
