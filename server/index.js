@@ -3,7 +3,8 @@ const { Server } = require("socket.io");
 const helmet = require("helmet");
 const cors = require("cors");
 const authRouter = require("./routers/Authrouter.js");
-const { sessionMiddleware, wrap, corsConfig} = require("./routers/ServerRouter.js");
+const { sessionMiddleware, wrap, corsConfig} = require("./controllers/ServerController.js");
+const { authorizeUser, addFriend } = require("./controllers/Socketcontroller.js");
 
 require("dotenv").config();
 
@@ -30,10 +31,10 @@ app.use((req, res, next) => {
 
 app.use("/auth", authRouter);
 
-io.use(wrap(sessionMiddleware))
+io.use(wrap(sessionMiddleware));
+io.use(authorizeUser);
 io.on("connect", (socket) => {
-    console.log(socket.id);
-    console.log(socket.request.session.user.username);
+    socket.on("add_friend",addFriend )
 });
 
 server.listen(4000, () => {
