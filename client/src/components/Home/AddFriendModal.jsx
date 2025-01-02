@@ -13,7 +13,8 @@ import {
   import { Form, Formik } from "formik";
   import TextField from "../TextField";
   import socket from "../../socket";
-import { useState,useCallback } from "react";
+import { useState,useCallback,useContext } from "react";
+import { FriendContext } from "./HomePage";
   
   const AddFriendModal = ({ isOpen, onClose }) => {
     const [error, setError]= useState("");
@@ -24,6 +25,7 @@ import { useState,useCallback } from "react";
         },
         [onClose],
     )
+    const {setFriendList} = useContext(FriendContext);
     return (
       <>
         {isOpen && (
@@ -38,6 +40,7 @@ import { useState,useCallback } from "react";
                   console.log("Submitted values:", values);
                   socket.emit("add_friend", values.friendName, ({errorMsg, done})=> {
                     if(done){
+                      setFriendList(c=> [values.friendName,...c]);
                         closeModal(); 
                         return;
                     }

@@ -34,7 +34,10 @@ app.use("/auth", authRouter);
 io.use(wrap(sessionMiddleware));
 io.use(authorizeUser);
 io.on("connect", (socket) => {
-    socket.on("add_friend",addFriend )
+    
+    socket.on("add_friend",(friendName,cb)=>{
+        addFriend(friendName,cb,socket);
+    } )
 });
 
 server.listen(4000, () => {
