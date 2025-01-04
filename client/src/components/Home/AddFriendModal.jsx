@@ -38,9 +38,9 @@ import { FriendContext } from "./HomePage";
                 initialValues={{ friendName: "" }}
                 onSubmit={(values) => {
                   console.log("Submitted values:", values);
-                  socket.emit("add_friend", values.friendName, ({errorMsg, done})=> {
+                  socket.emit("add_friend", values.friendName, ({errorMsg, done,newFriend})=> {
                     if(done){
-                      setFriendList(c=> [values.friendName,...c]);
+                      setFriendList(c=> [newFriend,...c]);
                         closeModal(); 
                         return;
                     }

@@ -27,6 +27,7 @@ const Sidebar = () => {
           </Button>
         </HStack>
         <Divider />
+        console.log(friendList);
         <VStack as={TabList}>
           {friendList.map(friend => (
             <HStack as={Tab} key={`friend:${friend}`}>
@@ -35,7 +36,7 @@ const Sidebar = () => {
                 w="20px"
                 h="20px"
               />
-              <Text>{friend}</Text>
+              <Text>{friend.username}</Text>
             </HStack>
           ))}
         </VStack>
