@@ -19,10 +19,16 @@ module.exports.authorizeUser = async (socket, next) => {
     const friendList = await redisClient.lrange(`friends:${socket.user.username}`,0,-1);
     const parsedFriendList = await parseFriendList(friendList);
     const friendRooms = parsedFriendList.map(friend=>friend.userid);
-    console.log(friendRooms);
-    if(friendRooms.length>0)socket.to(friendRooms).emit("connected",true,socket.user.username);
+    if(friendRooms.length>0)socket.to(friendRooms).emit("connected","true",socket.user.username);
     console.log(`${socket.user.username} friends:`,parsedFriendList);
     socket.emit("friends",parsedFriendList);
+    const msgQuery=await redisClient.lrange(`chat:${socket.user.userid}`,0,-1);
+    const messages = msgQuery.map(msgStr => {
+      const parsedStr = msgStr.split(".");
+      return { to: parsedStr[0], from: parsedStr[1], content: parsedStr[2] };
+    });
+    if(messages && messages.length>0)socket.emit("messages",messages);
+    console.log(`${socket.user.username} messages:`,messages);
   }
 
   module.exports.addFriend = async (friendName, cb,socket) => {
@@ -48,7 +54,8 @@ module.exports.authorizeUser = async (socket, next) => {
     // If the friend's user ID is found, proceed with adding the friend
     console.log(`Friend's user ID found: ${friend.userid}`);
     // Add your logic to add the friend here
-    if(currentFriendslist && currentFriendslist.indexOf(friendName) !== -1){
+
+    if(currentFriendslist && currentFriendslist.indexOf(`${friendName}.${friend.userid}`) !== -1){
         cb({ done: false, errorMsg: "User is already your friend!" });
         return;
     }
@@ -69,9 +76,18 @@ module.exports.onDisconnect = async (socket) => {
   //get friends
   const parsedFriendList = await parseFriendList(friendList); 
   const friendRooms = parsedFriendList.map(friend=>friend.userid);
-  socket.to(friendRooms).emit("connected",false,socket.user.username);
+  socket.to(friendRooms).emit("connected","false",socket.user.username);
   //emit to friends that we are offline
-}
+};
+
+module.exports.dm = async (socket,message) => {
+  message.from=socket.user.userid;
+  console.log("DM:",message);
+  const messagestring = [message.to,message.from,message.content].join(".");
+  await redisClient.lpush(`chat:${message.from}`,messagestring);
+  await redisClient.lpush(`chat:${message.to}`,messagestring);
+  socket.to(message.to).emit("dm",message);
+};
 
 const parseFriendList = async friendList => {
   const newFriendList = [];

@@ -4,7 +4,7 @@ const helmet = require("helmet");
 const cors = require("cors");
 const authRouter = require("./routers/Authrouter.js");
 const { sessionMiddleware, wrap, corsConfig} = require("./controllers/ServerController.js");
-const { authorizeUser, addFriend, initializeUser, onDisconnect } = require("./controllers/Socketcontroller.js");
+const { authorizeUser, addFriend, initializeUser, onDisconnect ,dm} = require("./controllers/Socketcontroller.js");
 
 require("dotenv").config();
 
@@ -38,6 +38,7 @@ io.on("connect", (socket) => {
     socket.on("add_friend",(friendName,cb)=>{
         addFriend(friendName,cb,socket);
     } )
+    socket.on("dm", message => dm(socket, message));
     socket.on("disconnecting",()=> onDisconnect(socket));
 });
 
