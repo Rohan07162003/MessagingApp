@@ -17,7 +17,18 @@ const useSocketSetup = (setFriendList,setMessages) => {
       console.log("Received message:", message);
       setMessages(prevMsgs => [message, ...prevMsgs]);
     });
-    socket.on("connected", (status, username) => {
+    socket.on("lastOnline",(timestamp,username)=>{
+      console.log("Friend last online:", username, timestamp);
+      setFriendList(prevFriends => {
+        return [...prevFriends].map(friend => {
+          if (friend.username === username) {
+            friend.lastOnline = timestamp;
+          }
+          return friend;
+        });
+      });
+    })
+    socket.on("connected", (status,username) => {
       setFriendList(prevFriends => {
         return [...prevFriends].map(friend => {
           if (friend.username === username) {

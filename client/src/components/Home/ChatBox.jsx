@@ -19,9 +19,16 @@ const ChatBox = ({ userid }) => {
         message: Yup.string().min(1).max(255),
       })}
       onSubmit={(values, actions) => {
+        const timestamp = Date.now();
         const message = { to: userid, from: null, content: values.message };
         socket.emit("dm", message);
-        setMessages(prevMessages => [message,...prevMessages]);
+        const message2 = { 
+          to: userid, 
+          from: null, 
+          content: values.message, 
+          timestamp
+        };
+        setMessages(prevMessages => [message2,...prevMessages]);
         actions.resetForm();
       }}
     >

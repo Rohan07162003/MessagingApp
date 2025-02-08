@@ -1,4 +1,4 @@
-import { Text, VStack } from "@chakra-ui/layout";
+import { Text, VStack, HStack, Box } from "@chakra-ui/layout";
 import { TabPanel, TabPanels } from "@chakra-ui/tabs";
 import { useContext, useRef, useState, useEffect } from "react";
 import { FriendContext, MessagesContext } from "./HomePage";
@@ -22,36 +22,45 @@ const Chat = ({ userid }) => {
           <VStack
             flexDir="column-reverse"
             as={TabPanel}
-            key={`friend:${friend.username}`}
+            key={`friend:${friend.username}:${index}`}
             w="100%"
           >
             <div
               ref={(el) => (bottomRefs.current[friend.userid] = el)}
-            /> 
-            {/* scroll to this */}
+            />
             {messages
               .filter(
                 (msg) => msg.from === friend.userid || msg.to === friend.userid
               )
               .map((message, ind) => (
-                <Text
-                  maxW="50%"
-                  m={
-                    message.to === friend.userid
-                      ? "0.1rem 0 0 auto !important"
-                      : "0.1rem auto 0 0 !important"
-                  }
+                <Box
                   key={`msg:${friend.username}.${ind}`}
-                  fontSize="lg"
-                  color="gray.800"
+                  alignSelf={
+                    message.to === friend.userid ? "flex-start" : "flex-end"
+                  }
                   bg={message.to === friend.userid ? "blue.100" : "gray.100"}
-                  p="0.4rem 1rem"
                   borderRadius="10px"
+                  p="0.7rem"
+                  maxW="70%"
+                  boxShadow="md"
+                  position="relative"
                 >
-                  {message.content}
-                </Text>
+                  {/* Message Content */}
+                  <Text fontSize="lg" color="gray.800">
+                    {message.content}
+                  </Text>
+
+                  {/* Timestamp */}
+                  <Text
+                    fontSize="xs"
+                    color="gray.500"
+                    textAlign="right"
+                    mt="0.2rem"
+                  >
+                    {new Date(+message.timestamp).toLocaleString()}
+                  </Text>
+                </Box>
               ))}
-            
           </VStack>
         ))}
       </TabPanels>
@@ -66,7 +75,7 @@ const Chat = ({ userid }) => {
       fontSize="lg"
     >
       <TabPanels>
-        <Text>No friend :( Click add friend to start chatting</Text>
+        <Text>No friends :( Click add friend to start chatting</Text>
       </TabPanels>
     </VStack>
   );
