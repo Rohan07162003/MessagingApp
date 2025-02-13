@@ -3,8 +3,9 @@ const { Server } = require("socket.io");
 const helmet = require("helmet");
 const cors = require("cors");
 const authRouter = require("./routers/Authrouter.js");
+const groupRouter = require("./routers/Groupchatrouter.js");
 const { sessionMiddleware, wrap, corsConfig} = require("./controllers/ServerController.js");
-const { authorizeUser, addFriend, initializeUser, onDisconnect ,dm} = require("./controllers/Socketcontroller.js");
+const { authorizeUser, addFriend, initializeUser, onDisconnect ,dm, addGroup} = require("./controllers/Socketcontroller.js");
 
 require("dotenv").config();
 
@@ -30,6 +31,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/groups", groupRouter);
 
 io.use(wrap(sessionMiddleware));
 io.use(authorizeUser);
@@ -38,6 +40,9 @@ io.on("connect", (socket) => {
     socket.on("add_friend",(friendName,cb)=>{
         addFriend(friendName,cb,socket);
     } )
+    socket.on("add_group",({groupName,selectedFriends,groupId},cb)=>{
+        addGroup(socket, groupName, selectedFriends, groupId, cb);
+    })
     socket.on("dm", message => dm(socket, message));
     socket.on("disconnecting",()=> onDisconnect(socket));
 });

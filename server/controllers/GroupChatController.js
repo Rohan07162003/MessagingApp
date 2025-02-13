@@ -2,49 +2,74 @@ const redisClient = require("../redis");
 const pool = require("../db");
 const { v4: uuidv4 } = require("uuid");
 
-module.exports.createGroup = async (res,req) => {
+module.exports.createGroup = async (req, res) => {
+    const client = await pool.connect(); // Get DB connection for transaction
+
     try {
-        const {groupName,members}= req.body;
+        console.log("Received Body:", req.body);
+
+        const { groupName, members } = req.body;
         const groupId = uuidv4();
         const createdBy = req.session.user.userid;
+
+        console.log("createdBy:", createdBy);
+
+        // Check if group name already exists
         const existingGroup = await pool.query(
-            "SELECT * FROM group_chat WHERE name = $1",
+            "SELECT id FROM group_chat WHERE name = $1",
             [groupName]
         );
 
         if (existingGroup.rows.length > 0) {
-            socket.emit("error", { message: "Group name already exists." });
-            return;
+            // socket.emit("error", { message: "Group name already exists." });
+            return res.status(400).json({ success: false, message: "Group name already exists." });
         }
-        await pool.query(
+
+        // Begin transaction
+        await client.query("BEGIN");
+
+        // Insert new group
+        await client.query(
             "INSERT INTO group_chat(id, name, created_by) VALUES($1, $2, $3)",
             [groupId, groupName, createdBy]
         );
 
-        // Insert group creator into group_members table
-        await pool.query(
+        // Insert group creator as admin
+        await client.query(
             "INSERT INTO group_members(group_id, user_id, role) VALUES($1, $2, 'admin')",
             [groupId, createdBy]
         );
-        // Here, we add each selected member to the group
+
+        // Add members to the group (excluding creator)
         for (let memberId of members) {
-            // Ensure you don’t insert the creator again
             if (memberId !== createdBy) {
-                await pool.query(
+                await client.query(
                     "INSERT INTO group_members(group_id, user_id, role) VALUES($1, $2, 'member')",
                     [groupId, memberId]
                 );
             }
         }
-        res.json({ success: true, groupId });
+
+        // Commit transaction
+        await client.query("COMMIT");
+
+        res.status(201).json({ success: true, groupId });
+
         // Emit event to notify client
-        socket.emit("groupCreated", { groupId, groupName });
+        // socket.emit("groupCreated", { groupId, groupName });
+
     } catch (error) {
+        await client.query("ROLLBACK"); // Rollback transaction on error
         console.error("Error creating group:", error);
-        res.json({status:"Failed to create group. Try again later."});
-        socket.emit("error", { message: "Failed to create group. Try again later." });
+
+        res.status(500).json({ success: false, message: "Failed to create group. Try again later." });
+
+        // socket.emit("error", { message: "Failed to create group. Try again later." });
+    } finally {
+        client.release(); // Release DB connection
     }
 };
+
 
 module.exports.joinGroup = async (socket, groupId) => {
     try {

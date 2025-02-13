@@ -9,7 +9,5 @@ router.route("/login")
 .get(handleLogin)
 .post(validateForm, rateLimiter(60, 10),attemptLogin)
 router.post("/signup",validateForm, rateLimiter(60, 10),attemptRegister)
-router.route("/groups/create")
-.post(validateForm,createGroup)
 
 module.exports = router;

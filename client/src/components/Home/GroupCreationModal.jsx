@@ -14,22 +14,24 @@ import {
 import { useState, useCallback, useContext, useEffect } from "react";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import TextField from "../TextField"; 
-import { FriendContext } from "./HomePage";
+import TextField from "../TextField";
+import { FriendContext, GroupContext } from "./HomePage";
+import socket from "../../socket";
 
 const GroupCreationModal = ({ isOpengroup, onClosegroup, onCreateGroup }) => {
   const [error, setError] = useState("");
   const { friendList } = useContext(FriendContext);
 
   useEffect(() => {
-    if (isOpengroup) setError(""); 
+    if (isOpengroup) setError("");
     console.log("GroupCreationModal isOpengroup:", isOpengroup);
   }, [isOpengroup]);
 
   const closeModal = useCallback(() => {
     setError("");
-    onClosegroup(); 
+    onClosegroup();
   }, [onClosegroup]);
+  const { setGroupList } = useContext(GroupContext);
 
   return (
     <Modal isOpen={isOpengroup} onClose={closeModal}>
@@ -46,38 +48,68 @@ const GroupCreationModal = ({ isOpengroup, onClosegroup, onCreateGroup }) => {
               .max(50, "Group name too long"),
             selectedFriends: Yup.array().min(1, "Select at least one friend"),
           })}
-          onSubmit={async (values, { setSubmitting, resetForm }) => {
-            try {
-              const response = await fetch("/api/groups/create", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  groupName: values.groupName,
-                  members: values.selectedFriends,
-                }),
-              });
+          onSubmit={(values, actions) => {
+            const { groupName, selectedFriends } = values;
+            actions.setSubmitting(true);
+            setError("");
 
-              const data = await response.json();
-              if (data.success) {
-                onCreateGroup(data.groupId, values.groupName);
-                resetForm();
-                closeModal();
-              } else {
-                setError("Failed to create group.");
-              }
-            } catch (err) {
-              console.error("Error creating group:", err);
-              setError("Something went wrong. Try again.");
-            } finally {
-              setSubmitting(false);
-            }
+            fetch("http://localhost:4000/groups/create", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                groupName,
+                members: selectedFriends,
+              }),
+            })
+              .then((res) => {
+                if (!res.ok) {
+                  throw new Error(`Server error: ${res.status}`);
+                }
+                return res.json();
+              })
+              .then((data) => {
+                if (data.success) {
+                  socket.emit(
+                    "add_group",
+                    { groupName, selectedFriends, groupId: data.groupId },
+                    (response) => {
+                      if (response.done) {
+                        setGroupList((c) => [response.newGroup, ...c]);
+                        closeModal();
+                      } else {
+                        setError(response.errorMsg);
+                      }
+                    }
+                  );
+
+                  onCreateGroup(data.groupId, groupName);
+                  actions.resetForm();
+                  closeModal();
+                } else {
+                  setError("Failed to create group.");
+                }
+              })
+              .catch((err) => {
+                console.error("Error creating group:", err);
+                setError("Something went wrong. Try again.");
+              })
+              .finally(() => {
+                actions.setSubmitting(false);
+              });
           }}
         >
           {({ values, isSubmitting, setFieldValue }) => (
             <Form>
               <ModalBody>
                 {error && (
-                  <Heading as="p" fontSize="md" color="red.500" textAlign="center" mb={2}>
+                  <Heading
+                    as="p"
+                    fontSize="md"
+                    color="red.500"
+                    textAlign="center"
+                    mb={2}
+                  >
                     {error}
                   </Heading>
                 )}
@@ -97,7 +129,9 @@ const GroupCreationModal = ({ isOpengroup, onClosegroup, onCreateGroup }) => {
                         setFieldValue(
                           "selectedFriends",
                           values.selectedFriends.includes(friend.userid)
-                            ? values.selectedFriends.filter((id) => id !== friend.userid)
+                            ? values.selectedFriends.filter(
+                                (id) => id !== friend.userid
+                              )
                             : [...values.selectedFriends, friend.userid]
                         )
                       }
@@ -112,7 +146,11 @@ const GroupCreationModal = ({ isOpengroup, onClosegroup, onCreateGroup }) => {
                 <Button onClick={closeModal} mr={2}>
                   Cancel
                 </Button>
-                <Button colorScheme="green" type="submit" isLoading={isSubmitting}>
+                <Button
+                  colorScheme="green"
+                  type="submit"
+                  isLoading={isSubmitting}
+                >
                   Create Group
                 </Button>
               </ModalFooter>

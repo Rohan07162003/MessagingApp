@@ -36,7 +36,7 @@ const Chat = ({ userid }) => {
                 <Box
                   key={`msg:${friend.username}.${ind}`}
                   alignSelf={
-                    message.to === friend.userid ? "flex-start" : "flex-end"
+                    message.to === friend.userid ? "flex-end" : "flex-start"
                   }
                   bg={message.to === friend.userid ? "blue.100" : "gray.100"}
                   borderRadius="10px"

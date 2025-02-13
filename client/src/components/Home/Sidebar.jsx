@@ -13,10 +13,11 @@ import { Tab, TabList } from "@chakra-ui/tabs";
 import { formatDistanceToNow } from "date-fns"; 
 import AddFriendModal from "./AddFriendModal";
 import GroupCreationModal from "./GroupCreationModal";
-import { FriendContext } from "./HomePage";
+import { FriendContext, GroupContext } from "./HomePage";
 
 const Sidebar = () => {
   const { friendList } = useContext(FriendContext);
+  const { groupList } = useContext(GroupContext);  
 
   const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -24,6 +25,7 @@ const Sidebar = () => {
   return (
     <>
       <VStack py="1.4rem">
+        {/* Add Friend Section */}
         <HStack justifyContent="center" alignItems="center" gap={5} w="100%" py={1}>
           <Heading size="sm">Add a friend</Heading>
           <Button onClick={() => setIsAddFriendOpen(true)}>
@@ -32,6 +34,7 @@ const Sidebar = () => {
         </HStack>
         <Divider />
 
+        {/* Create Group Section */}
         <HStack gap={5} py={1}>
           <Heading size="sm" color="blue.500">
             Create Group Chat
@@ -42,14 +45,12 @@ const Sidebar = () => {
         </HStack>
         <Divider />
 
-        <VStack as={TabList} mt={2}>
+        {/* Friends List */}
+        <Heading size="sm" mt={2}>Friends</Heading>
+        <VStack as={TabList} mt={1} w="100%">
           {friendList.map((friend) => (
-            <HStack as={Tab} key={`friend:${friend.username}`}>
-              <Circle
-                bg={friend.connected === "false" ? "red.500" : "green.700"}
-                w="20px"
-                h="20px"
-              />
+            <HStack as={Tab} key={`friend:${friend.username}`} w="100%">
+              <Circle bg={friend.connected === "false" ? "red.500" : "green.700"} w="20px" h="20px" />
               <Text>{friend.username}</Text>
               {friend.connected === "false" && (
                 <Text fontSize="xs" color="gray.500">
@@ -59,8 +60,22 @@ const Sidebar = () => {
             </HStack>
           ))}
         </VStack>
+
+        <Divider />
+
+        {/* Groups List */}
+        <Heading size="sm" mt={2}>Groups</Heading>
+        <VStack as={TabList} mt={1} w="100%">
+          {groupList.map((group) => (
+            <HStack as={Tab} key={`group:${group.groupId}`} w="100%">
+              <Circle bg="blue.500" w="20px" h="20px" />
+              <Text>{group.groupName}</Text>
+            </HStack>
+          ))}
+        </VStack>
       </VStack>
 
+      {/* Modals */}
       <GroupCreationModal
         key={isGroupModalOpen ? "group-open" : "group-closed"} 
         isOpengroup={isGroupModalOpen}

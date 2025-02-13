@@ -2,13 +2,20 @@ import { useContext, useEffect } from "react";
 import socket from "../../socket";
 import { AccountContext } from "../AccountContext";
 
-const useSocketSetup = (setFriendList,setMessages) => {
+const useSocketSetup = (setFriendList,setMessages,setGroupList) => {
   const { setUser } = useContext(AccountContext);
   useEffect(() => {
     socket.connect();
     socket.on("friends", friendList => {
       setFriendList(friendList);
       console.log("Friend list:", friendList);
+    });
+    socket.on("groups",userGroups=>{
+      setGroupList(userGroups);
+      console.log("Group list:", userGroups);
+    })
+    socket.on("new_groups", (newGroup) => {
+      setGroupList(prevGrps=>[newGroup,...prevGrps]);
     });
     socket.on("messages", messages => {
       setMessages(messages);
@@ -47,9 +54,12 @@ const useSocketSetup = (setFriendList,setMessages) => {
       socket.off("friends");
       socket.off("connected");
       socket.off("messages");
+      socket.off("lastOnline");
+      socket.off("groups");
+      socket.off("new_groups");
       socket.off("dm");
     };
-  }, [setUser, setFriendList,setMessages]);
+  }, [setUser, setFriendList,setMessages,setGroupList]);
 };
 
 export default useSocketSetup;
