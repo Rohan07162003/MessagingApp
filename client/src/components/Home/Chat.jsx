@@ -9,7 +9,6 @@ const Chat = ({ userid }) => {
   const { messages } = useContext(MessagesContext);
   const bottomRefs = useRef({});
   const [activeTab, setActiveTab] = useState(0); 
-
   useEffect(() => {
     const activeRef = bottomRefs.current[friendList[activeTab]?.userid];
     activeRef?.scrollIntoView({ behavior: "smooth" });

@@ -5,7 +5,7 @@ const cors = require("cors");
 const authRouter = require("./routers/Authrouter.js");
 const groupRouter = require("./routers/Groupchatrouter.js");
 const { sessionMiddleware, wrap, corsConfig} = require("./controllers/ServerController.js");
-const { authorizeUser, addFriend, initializeUser, onDisconnect ,dm, addGroup} = require("./controllers/Socketcontroller.js");
+const { authorizeUser, addFriend, initializeUser, onDisconnect ,dm, addGroup,dmgrp} = require("./controllers/Socketcontroller.js");
 
 require("dotenv").config();
 
@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Credentials", "true");
     next();
 });
-
+  
 app.use("/auth", authRouter);
 app.use("/groups", groupRouter);
 
@@ -44,6 +44,7 @@ io.on("connect", (socket) => {
         addGroup(socket, groupName, selectedFriends, groupId, cb);
     })
     socket.on("dm", message => dm(socket, message));
+    socket.on("dmgrp", message => dmgrp(socket, message));
     socket.on("disconnecting",()=> onDisconnect(socket));
 });
 

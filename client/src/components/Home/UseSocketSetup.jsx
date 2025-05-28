@@ -2,7 +2,7 @@ import { useContext, useEffect } from "react";
 import socket from "../../socket";
 import { AccountContext } from "../AccountContext";
 
-const useSocketSetup = (setFriendList,setMessages,setGroupList) => {
+const useSocketSetup = (setFriendList,setMessages,setGroupList,setGrpmessages) => {
   const { setUser } = useContext(AccountContext);
   useEffect(() => {
     socket.connect();
@@ -20,9 +20,17 @@ const useSocketSetup = (setFriendList,setMessages,setGroupList) => {
     socket.on("messages", messages => {
       setMessages(messages);
     });
+    socket.on("groupMessage", (messages) => {
+      // For example, append messages if loading history
+      setGrpmessages(prev => [...messages, ...prev]);
+    });
     socket.on("dm", message => {
       console.log("Received message:", message);
       setMessages(prevMsgs => [message, ...prevMsgs]);
+    });
+    socket.on("dmgrp", message => {
+      console.log("Received message:", message);
+      setGrpmessages(prevMsgs => [message, ...prevMsgs]);
     });
     socket.on("lastOnline",(timestamp,username)=>{
       console.log("Friend last online:", username, timestamp);
@@ -58,8 +66,10 @@ const useSocketSetup = (setFriendList,setMessages,setGroupList) => {
       socket.off("groups");
       socket.off("new_groups");
       socket.off("dm");
+      socket.off("dmgrp");
+      socket.off("groupMessage");
     };
-  }, [setUser, setFriendList,setMessages,setGroupList]);
+  }, [setUser, setFriendList,setMessages,setGroupList,setGrpmessages]);
 };
 
 export default useSocketSetup;

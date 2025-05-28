@@ -1,42 +1,40 @@
-import { createContext, useState,useEffect } from "react";
+import { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-export const AccountContext= createContext();
 
+export const AccountContext = createContext();
 
+const UserContext = ({ children }) => {
+  const [user, setUser] = useState({ loggedIn: null, username: null, userid: null });
+  const navigate = useNavigate();
 
-const UserContext = ({children})=>{
-    const [user,setUser] = useState({loggedIn:null});
-    const navigate = useNavigate();
-    useEffect(() => {
-        fetch("http://localhost:4000/auth/login", {
-          credentials: "include",
-        })
-          .catch(err => {
-            setUser({ loggedIn: false });
-            return;
-          })
-          .then(r => {
-            if (!r || !r.ok || r.status >= 400) {
-              setUser({ loggedIn: false });
-              return;
-            }
-            return r.json();
-          })
-          .then(data => {
-            if (!data) {
-              setUser({ loggedIn: false });
-              return;
-            }
-            setUser({ ...data });
-            navigate("/home");
+  useEffect(() => {
+    fetch("http://localhost:4000/auth/login", {
+      credentials: "include",
+    })
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (data?.loggedIn) {
+          setUser({
+            loggedIn: true,
+            username: data.username || null,
+            userid: data.userid || null,
           });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
-    return (
-    <AccountContext.Provider value={{user,setUser}}>
-        {children}
-    </AccountContext.Provider>
-    );
-}
+          navigate("/home");
+        } else {
+          setUser({ loggedIn: false, username: null, userid: null });
+        }
+      })
+      .catch(() => {
+        setUser({ loggedIn: false, username: null, userid: null });
+      });
+  }, [navigate]);
+
+  return <AccountContext.Provider value={{ user, setUser }}>{children}</AccountContext.Provider>;
+};
 
 export default UserContext;

@@ -56,18 +56,20 @@ const emitgroups = async (socket) => {
 
       if (members.includes(userId)) {
         const groupDetails = await redisClient.hgetall(`group:${groupId}`);
+        socket.join(groupId);
         userGroups.push({
           groupId,
           groupName: groupDetails.name,
           createdBy: groupDetails.createdBy,
           members,
         });
+        emitgrpmessages(socket,groupId);
       }
     }
 
     // Emit the list of groups to the user
     socket.emit("groups", userGroups);
-    console.log(`Emitted groups for ${socket.user.username}`, userGroups);
+    // console.log(`Emitted groups for ${socket.user.username}`, userGroups);
   } catch (error) {
     console.error("Error fetching groups:", error);
   }
@@ -90,6 +92,15 @@ const emitmessages = async (socket) => {
   });
   if (messages && messages.length > 0) socket.emit("messages", messages);
   // console.log(`${socket.user.username} messages:`,messages);
+};
+const emitgrpmessages = async (socket,groupId) => {
+  const msgQuery = await redisClient.lrange(
+    `group_messages:${groupId}`,
+    0,
+    -1
+  );
+  const messages = msgQuery.map(msgStr => JSON.parse(msgStr));
+  if (messages && messages.length > 0) socket.emit("groupMessage", messages);
 };
 
 module.exports.addFriend = async (friendName, cb, socket) => {
@@ -177,6 +188,11 @@ module.exports.dm = async (socket, message) => {
   await redisClient.lpush(`chat:${message.from}`, messagestring);
   await redisClient.lpush(`chat:${message.to}`, messagestring);
   socket.to(message.to).emit("dm", message);
+};
+
+module.exports.dmgrp = async (socket, message) => {
+  console.log("DMgrp:", message);
+  socket.to(message.groupId).emit("dmgrp", message);
 };
 
 module.exports.addGroup = async (socket, groupName, selectedFriends, groupId, cb) => {
